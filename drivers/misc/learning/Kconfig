@@ -1,0 +1,7 @@
+config LEARNING_MODULES
+	tristate "Adds the learning modules to the kernel"
+	default y
+	help
+	  This driver set includes all the modules that are based on
+	  the kernel learning process.
+
