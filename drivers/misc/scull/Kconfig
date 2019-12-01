@@ -1,0 +1,7 @@
+config SCULL
+	tristate "Adds the scull driver"
+	default y
+	help
+	  This driver represents a real device named
+	  "Simple Character Utility for Loading Localities"
+
