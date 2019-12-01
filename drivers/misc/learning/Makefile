@@ -5,3 +5,4 @@ obj-$(CONFIG_LEARNING_MODULES)		+= module03b.o
 obj-$(CONFIG_LEARNING_MODULES)		+= module04.o
 obj-$(CONFIG_LEARNING_MODULES)		+= module05.o
 obj-$(CONFIG_LEARNING_MODULES)		+= module06.o
+obj-$(CONFIG_LEARNING_MODULES)		+= module07.o
