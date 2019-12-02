@@ -25,7 +25,7 @@ static struct file_operations fops = {
 				       */
 };
 
-int __init module_initialize(void)
+int __init module03b_initialize(void)
 {
 	/* Obtain a valid device number from the kernel */
 	if (alloc_chrdev_region(
@@ -77,7 +77,7 @@ int __init module_initialize(void)
 	return -EIO;
 }
 
-void __exit module_cleanup(void)
+void __exit module03b_cleanup(void)
 {
 	/* delete sysfs entry first */
 	device_destroy(
@@ -91,8 +91,8 @@ void __exit module_cleanup(void)
 	unregister_chrdev_region(dev_num, 1);
 }
 
-module_init(module_initialize);
-module_exit(module_cleanup);
+module_init(module03b_initialize);
+module_exit(module03b_cleanup);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Martin Homuth");

@@ -81,7 +81,7 @@ static struct file_operations fops = {
 	.poll = dev_poll,
 };
 
-int __init module_initialize(void)
+int __init module07_initialize(void)
 {
 	if (alloc_chrdev_region(&dev_num, 0, 1, DRIVER_NAME)) {
 		pr_err("Unable to allocate device number for device");
@@ -125,7 +125,7 @@ int __init module_initialize(void)
 	return -EIO;
 }
 
-void __exit module_cleanup(void)
+void __exit module07_cleanup(void)
 {
 	device_destroy(class, dev_num);
 	class_destroy(class);
@@ -133,8 +133,8 @@ void __exit module_cleanup(void)
 	unregister_chrdev_region(dev_num, 1);
 }
 
-module_init(module_initialize);
-module_exit(module_cleanup);
+module_init(module07_initialize);
+module_exit(module07_cleanup);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Martin Homuth");

@@ -16,7 +16,7 @@ static struct file_operations fops;
 static int major;
 #define DRIVER_NAME "TestDriver"
 
-int __init module_initialize(void)
+int __init module03a_initialize(void)
 {
 	if ((major = register_chrdev(0, DRIVER_NAME, &fops))) {
 		pr_info("Registered device with major number %d\n", major);
@@ -25,13 +25,13 @@ int __init module_initialize(void)
 	return -EIO;  /* register failed, return negative error code */
 }
 
-void __exit module_cleanup(void)
+void __exit module03a_cleanup(void)
 {
 	unregister_chrdev(major, DRIVER_NAME);
 }
 
-module_init(module_initialize);
-module_exit(module_cleanup);
+module_init(module03a_initialize);
+module_exit(module03a_cleanup);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Martin Homuth");
