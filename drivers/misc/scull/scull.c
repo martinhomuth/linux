@@ -42,12 +42,10 @@ static int scull_trim(struct scull_dev *dev)
 	pr_debug("%s\n", __func__);
 	for (dptr = dev->data; dptr; dptr = next) {
 		if (dptr->data) {
-			pr_debug("Freeing qset 0x%p\n", dptr->data);
+			pr_debug("freeing qset 0x%p\n", dptr->data);
 			for (i = 0; i < qset; i++) {
 				if (dptr->data[i])
 					pr_debug("freeing quantum %d\n", i);
-				else
-					pr_debug("unset quantum %d\n", i);
 				kfree(dptr->data[i]);
 			}
 			kfree(dptr->data);
@@ -107,6 +105,7 @@ static struct scull_qset *scull_follow(struct scull_dev *dev, int item)
 		qs = dev->data = kzalloc(sizeof(struct scull_qset), GFP_KERNEL);
 		if (!qs)
 			return NULL;
+		pr_debug("allocating qset 0x%p\n", qs);
 	}
 
 	while (item--) {
@@ -115,6 +114,7 @@ static struct scull_qset *scull_follow(struct scull_dev *dev, int item)
 					   GFP_KERNEL);
 			if (!qs->next)
 				return NULL;
+			pr_debug("allocating qset 0x%p\n", qs);
 		}
 		qs = qs->next;
 		continue;
@@ -191,11 +191,13 @@ static ssize_t scull_write(struct file *filep, const char __user *buf,
 		goto out;
 	if (!dptr->data) {
 		dptr->data = kcalloc(qset, sizeof(char *), GFP_KERNEL);
+		pr_debug("allocating qset 0x%p\n", dptr->data);
 		if (!dptr->data)
 			goto out;
 	}
 	if (!dptr->data[s_pos]) {
 		dptr->data[s_pos] = kmalloc(quantum, GFP_KERNEL);
+		pr_debug("allocating quantum %d\n", s_pos);
 		if (!dptr->data[s_pos])
 			goto out;
 	}
