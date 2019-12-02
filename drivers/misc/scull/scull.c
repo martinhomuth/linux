@@ -50,9 +50,6 @@ static int __init module_initialize(void)
 				sizeof(struct scull_dev),
 				GFP_KERNEL);
 
-	for (i = 0; i < nr_scull_devices; i++)
-		scull_setup_cdev(&scull_devices[i], i);
-
 	scull_class = class_create(THIS_MODULE,
 				   DRIVER_NAME);
 	if (IS_ERR(scull_class)) {
@@ -69,6 +66,10 @@ static int __init module_initialize(void)
 			goto free_class;
 		}
 	}
+
+	for (i = 0; i < nr_scull_devices; i++)
+		scull_setup_cdev(&scull_devices[i], i);
+
 	return 0;
 
  free_class:
