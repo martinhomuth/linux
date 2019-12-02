@@ -10,14 +10,14 @@ struct scull_qset {
 };
 
 struct scull_dev {
-	struct scull_qset *data; /* Pointer to first quantum set */
-	int quantum;             /* the current quantum size */
-	int qset;                /* the current array size */
-	unsigned long size;      /* amount of data stored here */
-	unsigned int access_key; /* used by sculluid scullpriv */
-	struct semaphore sem;    /* mutual exclusion semaphore */
-	struct cdev cdev;        /* char device structure */
-	struct device *device;   /* device structure */
+	struct scull_qset *data;   /* Pointer to first quantum set */
+	int quantum;               /* the current quantum size */
+	int qset;                  /* the current array size */
+	unsigned long size;        /* amount of data stored here */
+	unsigned int access_key;   /* used by sculluid scullpriv */
+	struct rw_semaphore rwsem; /* mutual exclusion semaphore */
+	struct cdev cdev;          /* char device structure */
+	struct device *device;     /* device structure */
 };
 
 #endif
