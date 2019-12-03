@@ -16,19 +16,21 @@
 
 #define SCULL_QSET_SIZE 4000
 
+#define DRIVER_NAME "scull"
+
 static dev_t dev_num;
 static struct class *scull_class;
-#define DRIVER_NAME "scull"
 static int scull_major;
+static struct scull_dev *scull_devices;
+
 static int nr_scull_devices = NUM_SCULL_DEVICES;
 module_param(nr_scull_devices, int, 0444);
 
 static int scull_qset_size = SCULL_QSET_SIZE;
 module_param(scull_qset_size, int, 0444);
+
 static int scull_quantum_size = SCULL_QUANTUM_SIZE;
 module_param(scull_quantum_size, int, 0444);
-
-static struct scull_dev *scull_devices;
 
 /*
  * Freeing the whole scull data structure
