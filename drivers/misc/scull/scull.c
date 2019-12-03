@@ -282,8 +282,10 @@ static int __init module_initialize(void)
 	}
 
 	for (i = 0; i < nr_scull_devices; i++) {
-		scull_setup_cdev(&scull_devices[i], i);
+		scull_devices[i].quantum = scull_quantum_size;
+		scull_devices[i].qset = scull_qset_size;
 		init_rwsem(&scull_devices[i].rwsem);
+		scull_setup_cdev(&scull_devices[i], i);
 	}
 
 	return 0;
