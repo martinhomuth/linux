@@ -9,6 +9,8 @@
 #include <linux/slab.h>
 #include <linux/rwsem.h>
 #include <linux/uaccess.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 
 #define NUM_SCULL_DEVICES 4
 
@@ -230,6 +232,122 @@ static const struct file_operations scull_fops = {
 	.write = scull_write,
 };
 
+/* scull mem proc */
+int scullmem_proc_show(struct seq_file *s, void *v)
+{
+	int i, j;
+	int limit = s->size - 80; /* Don't print more than this */
+
+	for (i = 0; i < nr_scull_devices && s->count <= limit; i++) {
+		struct scull_dev *d = &scull_devices[i];
+		struct scull_qset *qs = d->data;
+
+		down_read(&d->rwsem);
+		seq_printf(s, "\nDevice %i: qset %i, q %i, sz %li\n", i,
+			   d->qset, d->quantum, d->size);
+		for (; qs && s->count <= limit;
+		     qs = qs->next) { /* scan the list */
+			seq_printf(s, "  item at %p, qset at %p\n", qs,
+				   qs->data);
+			if (qs->data && !qs->next) /* dump only the last item */
+				for (j = 0; j < d->qset; j++) {
+					if (qs->data[j])
+						seq_printf(s, "    % 4i: %8p\n",
+							   j, qs->data[j]);
+				}
+		}
+		up_read(&d->rwsem);
+	}
+	return 0;
+}
+
+DEFINE_SHOW_ATTRIBUTE(scullmem_proc);
+
+static void create_scullmem_proc_entry(void)
+{
+	struct proc_dir_entry *pde;
+
+}
+
+/* scull seq proc */
+
+static void *scull_seq_start(struct seq_file *m, loff_t *pos)
+{
+	if (*pos >= nr_scull_devices)
+		return NULL;
+	return scull_devices + *pos;
+}
+
+static void scull_seq_stop(struct seq_file *m, void *v)
+{
+	/* nothing to do */
+}
+
+static void *scull_seq_next(struct seq_file *m, void *v, loff_t *pos)
+{
+	(*pos)++;
+	if (*pos >= nr_scull_devices)
+		return NULL;
+	return scull_devices + *pos;
+}
+
+static int scull_seq_show(struct seq_file *m, void *v)
+{
+	struct scull_dev *dev = (struct scull_dev *)v;
+	struct scull_qset *d;
+	int i;
+
+	down_read(&dev->rwsem);
+	seq_printf(m, "\nDevice %i: qset %i, q %i, sz %li\n",
+		   (int) (dev - scull_devices), dev->qset,
+		   dev->quantum, dev->size);
+	for (d = dev->data; d; d = d->next) {
+		seq_printf(m, "  item at %p, qset at %p\n", d, d->data);
+		if (d->data && !d->next)
+			for (i = 0; i < dev->qset; i++) {
+				if (d->data[i])
+					seq_printf(m, "    % 4i: %8p\n",
+						   i, d->data[i]);
+			}
+	}
+	up_read(&dev->rwsem);
+	return 0;
+}
+
+static const struct seq_operations scull_seq_ops = {
+	.start = scull_seq_start,
+	.next  = scull_seq_next,
+	.stop  = scull_seq_stop,
+	.show  = scull_seq_show
+};
+
+static int scullseq_proc_open(struct inode *inode, struct file *file)
+{
+	return seq_open(file, &scull_seq_ops);
+}
+
+static const struct file_operations scullseq_proc_fops = {
+	.owner = THIS_MODULE,
+	.open = scullseq_proc_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = seq_release,
+};
+
+static void scull_create_proc(void)
+{
+	proc_create_data("scullseq", 0, NULL,
+			 &scullseq_proc_fops, NULL);
+	proc_create_data("scullmem", 0, NULL,
+			 &scullmem_proc_fops, NULL);
+}
+
+static void scull_remove_proc(void)
+{
+	remove_proc_entry("scullmem", NULL);
+	remove_proc_entry("scullseq", NULL);
+}
+
 static void scull_setup_cdev(struct scull_dev *dev, int index)
 {
 	int err;
@@ -288,6 +406,8 @@ static int __init module_initialize(void)
 		scull_setup_cdev(&scull_devices[i], i);
 	}
 
+	scull_create_proc();
+
 	return 0;
 
  free_class:
@@ -306,6 +426,8 @@ static void __exit module_cleanup(void)
 	int i;
 
 	pr_debug("%s\n", __func__);
+
+	scull_remove_proc();
 	for (i = 0; i < nr_scull_devices; i++)
 		device_destroy(scull_class, MKDEV(scull_major, i));
 	class_destroy(scull_class);
