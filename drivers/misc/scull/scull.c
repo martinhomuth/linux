@@ -3,6 +3,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/fs.h>
+#include <linux/capability.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/scull.h>
@@ -224,12 +225,111 @@ static ssize_t scull_write(struct file *filep, const char __user *buf,
 	return count;
 }
 
+static long scull_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
+{
+	int err = 0, tmp;
+	int retval = 0;
+
+	/*
+	 * extract the type and number bitfields, and don't decode
+	 * wrong cmds: return ENOTTY before access_ok()
+	 */
+	if ((_IOC_TYPE(cmd) != SCULL_IOC_MAGIC) ||
+	    (_IOC_NR(cmd) > SCULL_IOC_MAXNR))
+		return -ENOTTY;
+
+	/*
+	 * the direction is a bitmask, and VERIFY_WRITE catches R/W
+	 * transfers. `direction' is user-oriented, while access_ok is
+	 * kernel-oriented, so the concept of "read" and "write" is
+	 * reversed
+	 */
+	if ((_IOC_DIR(cmd) & _IOC_READ) ||
+	    (_IOC_DIR(cmd) & _IOC_WRITE))
+		err = !access_ok((void __user *)arg, _IOC_SIZE(cmd));
+	if (err)
+		return -EFAULT;
+
+	switch (cmd) {
+	case SCULL_IOCRESET:
+		scull_quantum_size = SCULL_QUANTUM_SIZE;
+		scull_qset_size = SCULL_QSET_SIZE;
+		break;
+	case SCULL_IOCSQUANTUM:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		retval = __get_user(scull_quantum_size, (int __user *)arg);
+		break;
+	case SCULL_IOCSQSET:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		retval = __get_user(scull_qset_size, (int __user *)arg);
+		break;
+	case SCULL_IOCTQUANTUM:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		scull_quantum_size = arg;
+		break;
+	case SCULL_IOCTQSET:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		scull_qset_size = arg;
+		break;
+	case SCULL_IOCGQUANTUM:
+		retval = __put_user(scull_quantum_size, (int __user *)arg);
+		break;
+	case SCULL_IOCGQSET:
+		retval = __put_user(scull_qset_size, (int __user *)arg);
+		break;
+	case SCULL_IOCQQUANTUM:
+		retval = scull_quantum_size;
+		break;
+	case SCULL_IOCQQSET:
+		retval = scull_qset_size;
+		break;
+	case SCULL_IOCXQUANTUM:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		tmp = scull_quantum_size;
+		retval = __get_user(scull_quantum_size, (int __user *)arg);
+		if (retval == 0)
+			retval = __put_user(tmp, (int __user *)arg);
+		break;
+	case SCULL_IOCXQSET:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		tmp = scull_qset_size;
+		retval = __get_user(scull_qset_size, (int __user *)arg);
+		if (retval == 0)
+			retval = __put_user(tmp, (int __user *)arg);
+		break;
+	case SCULL_IOCHQUANTUM:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		tmp = scull_quantum_size;
+		scull_quantum_size = arg;
+		retval = tmp;
+		break;
+	case SCULL_IOCHQSET:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EFAULT;
+		tmp = scull_qset_size;
+		scull_qset_size = arg;
+		retval = tmp;
+		break;
+	default:
+		return -ENOTTY;
+	}
+	return retval;
+}
+
 static const struct file_operations scull_fops = {
 	.owner = THIS_MODULE,
 	.open = scull_open,
 	.release = scull_release,
 	.read = scull_read,
 	.write = scull_write,
+	.unlocked_ioctl = scull_ioctl, /* we dont do compat */
 };
 
 /* scull mem proc */
